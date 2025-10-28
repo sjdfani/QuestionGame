@@ -10,13 +10,16 @@ import (
 	"net/http"
 )
 
+const signKey = "secret_sign_key"
+
 func main() {
 	mysqlRepo := mysql.New()
-	userservice.New(mysqlRepo)
+	userservice.New(mysqlRepo, signKey)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/users/register", registerHandler)
 	mux.HandleFunc("/users/login", userLoginHandler)
+	mux.HandleFunc("/users/profile", userProfileHandler)
 
 	log.Println("Server is listening on port 8080 ...")
 
@@ -43,7 +46,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mysqlRepo := mysql.New()
-	userSvc := userservice.New(mysqlRepo)
+	userSvc := userservice.New(mysqlRepo, signKey)
 
 	_, err = userSvc.Register(req)
 	if err != nil {
@@ -74,13 +77,44 @@ func userLoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mysqlRepo := mysql.New()
-	userSvc := userservice.New(mysqlRepo)
+	userSvc := userservice.New(mysqlRepo, signKey)
 
-	_, err = userSvc.Login(lReq)
+	response, err := userSvc.Login(lReq)
 	if err != nil {
 		fmt.Fprintf(w, `{"detail": "%s"}`, err.Error())
 		return
 	}
 
-	w.Write([]byte(`{"detail": "user credentials is ok"}`))
+	data, mErr := json.Marshal(response)
+	if mErr != nil {
+		fmt.Fprintf(w, `{"detail": "%s"}`, mErr.Error())
+		return
+	}
+
+	w.Write(data)
+}
+
+func userProfileHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"detail": "Method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	profileReq := userservice.ProfileRequest{UserID: 0}
+	mysqlRepo := mysql.New()
+	userSvc := userservice.New(mysqlRepo, signKey)
+
+	resp, err := userSvc.Profile(profileReq)
+	if err != nil {
+		fmt.Fprintf(w, `{"detail": "%s"}`, err.Error())
+		return
+	}
+
+	data, err := json.Marshal(resp)
+	if err != nil {
+		fmt.Fprintf(w, `{"detail": "%s"}`, err.Error())
+		return
+	}
+
+	w.Write(data)
 }
