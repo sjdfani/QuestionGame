@@ -2,20 +2,25 @@ package main
 
 import (
 	"QuestionGame/repository/mysql"
+	"QuestionGame/service/authservice"
 	"QuestionGame/service/userservice"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
-const signKey = "secret_sign_key"
+const (
+	JWTSignKey           = "secret_sign_key"
+	AccessTokenSubject   = "at"
+	RefreshTokenSubject  = "rt"
+	AccessTokenDuration  = time.Hour * 24
+	RefreshTokenDuration = time.Hour * 24 * 7
+)
 
 func main() {
-	mysqlRepo := mysql.New()
-	userservice.New(mysqlRepo, signKey)
-
 	mux := http.NewServeMux()
 	mux.HandleFunc("/users/register", registerHandler)
 	mux.HandleFunc("/users/login", userLoginHandler)
@@ -45,8 +50,11 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	authSvc := authservice.New(
+		JWTSignKey, AccessTokenSubject, RefreshTokenSubject, AccessTokenDuration, RefreshTokenDuration,
+	)
 	mysqlRepo := mysql.New()
-	userSvc := userservice.New(mysqlRepo, signKey)
+	userSvc := userservice.New(authSvc, mysqlRepo)
 
 	_, err = userSvc.Register(req)
 	if err != nil {
@@ -76,8 +84,11 @@ func userLoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	authSvc := authservice.New(
+		JWTSignKey, AccessTokenSubject, RefreshTokenSubject, AccessTokenDuration, RefreshTokenDuration,
+	)
 	mysqlRepo := mysql.New()
-	userSvc := userservice.New(mysqlRepo, signKey)
+	userSvc := userservice.New(authSvc, mysqlRepo)
 
 	response, err := userSvc.Login(lReq)
 	if err != nil {
@@ -100,11 +111,21 @@ func userProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profileReq := userservice.ProfileRequest{UserID: 0}
-	mysqlRepo := mysql.New()
-	userSvc := userservice.New(mysqlRepo, signKey)
+	authSvc := authservice.New(
+		JWTSignKey, AccessTokenSubject, RefreshTokenSubject, AccessTokenDuration, RefreshTokenDuration,
+	)
 
-	resp, err := userSvc.Profile(profileReq)
+	authToken := r.Header.Get("Authorization")
+	claim, err := authSvc.ParseToken(authToken)
+	if err != nil {
+		http.Error(w, `{"detail": "Token is not valid"}`, http.StatusBadRequest)
+		return
+	}
+
+	mysqlRepo := mysql.New()
+	userSvc := userservice.New(authSvc, mysqlRepo)
+
+	resp, err := userSvc.Profile(userservice.ProfileRequest{UserID: claim.UserID})
 	if err != nil {
 		fmt.Fprintf(w, `{"detail": "%s"}`, err.Error())
 		return
