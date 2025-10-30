@@ -30,9 +30,10 @@ func (s Server) Serve() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	e.POST("/users/register", s.userRegisterHandler)
-	e.POST("/users/login", s.userLoginHandler)
-	e.GET("/users/profile", s.userProfileHandler)
+	usersGroup := e.Group("/users")
+	usersGroup.POST("/users/register", s.userRegisterHandler)
+	usersGroup.POST("/users/login", s.userLoginHandler)
+	usersGroup.GET("/users/profile", s.userProfileHandler)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf("%d", s.config.HTTPServer.Port)))
 }
