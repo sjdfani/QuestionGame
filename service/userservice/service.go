@@ -33,7 +33,7 @@ type RegisterRequest struct {
 }
 
 type RegisterResponse struct {
-	User entity.User
+	User entity.User `json:"user"`
 }
 
 func New(auth AuthGenerator, repo Repository) Service {
