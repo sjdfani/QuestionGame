@@ -40,7 +40,7 @@ func (s Server) userProfileHandler(c echo.Context) error {
 
 	claim, err := s.authSvc.ParseToken(authToken)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, `{"detail": "Token is not valid"}`)
+		return echo.NewHTTPError(http.StatusUnauthorized, `{"detail": "Token is not valid"}`)
 	}
 
 	response, err := s.userSvc.Profile(userservice.ProfileRequest{UserID: claim.UserID})
