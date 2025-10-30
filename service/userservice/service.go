@@ -32,8 +32,14 @@ type RegisterRequest struct {
 	Password    string `json:"password"`
 }
 
+type UserInfo struct {
+	ID          uint   `json:"id"`
+	PhoneNumber string `json:"phonenumber"`
+	Name        string `json:"name"`
+}
+
 type RegisterResponse struct {
-	User entity.User `json:"user"`
+	User UserInfo `json:"user"`
 }
 
 func New(auth AuthGenerator, repo Repository) Service {
@@ -89,7 +95,13 @@ func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 	}
 
 	// return created user
-	return RegisterResponse{User: created_user}, nil
+	return RegisterResponse{
+		User: UserInfo{
+			ID:          created_user.ID,
+			PhoneNumber: created_user.PhoneNumber,
+			Name:        created_user.Name,
+		},
+	}, nil
 }
 
 type LoginRequest struct {
@@ -97,9 +109,13 @@ type LoginRequest struct {
 	Password    string `json:"password"`
 }
 
-type LoginResponse struct {
+type Tokens struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+}
+type LoginResponse struct {
+	User   UserInfo `json:"user"`
+	Tokens Tokens   `json:"tokens"`
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
@@ -137,7 +153,17 @@ func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 	}
 
 	// return ok
-	return LoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+	return LoginResponse{
+		User: UserInfo{
+			ID:          user.ID,
+			PhoneNumber: user.PhoneNumber,
+			Name:        user.Name,
+		},
+		Tokens: Tokens{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		},
+	}, nil
 }
 
 type ProfileRequest struct {
