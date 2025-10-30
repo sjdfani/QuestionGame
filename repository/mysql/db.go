@@ -20,23 +20,13 @@ type MysqlDB struct {
 	db *sql.DB
 }
 
-func New() *MysqlDB {
-	config := MysqlConfig{
-		Host:     "127.0.0.1",
-		Port:     3308,
-		User:     "root",
-		Password: "root_password",
-		DBName:   "question_game_db",
-	}
-
-	fmt.Printf("DB Config: %v\n", config)
-
+func New(cfg MysqlConfig) *MysqlDB {
 	dbSourceName := fmt.Sprintf("%s:%s@(%s:%d)/%s",
-		config.User,
-		config.Password,
-		config.Host,
-		config.Port,
-		config.DBName,
+		cfg.User,
+		cfg.Password,
+		cfg.Host,
+		cfg.Port,
+		cfg.DBName,
 	)
 
 	db, err := sql.Open("mysql", dbSourceName)
