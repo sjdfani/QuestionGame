@@ -1,0 +1,5 @@
+production:
+  dialect: mysql
+  datasource: root:root_password@tcp(localhost:3308)/question_game_db?parseTime=true
+  dir: repository/mysql/migrations/
+  table: migrations
