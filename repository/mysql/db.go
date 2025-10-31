@@ -21,7 +21,7 @@ type MysqlDB struct {
 }
 
 func New(cfg MysqlConfig) *MysqlDB {
-	dbSourceName := fmt.Sprintf("%s:%s@(%s:%d)/%s",
+	dbSourceName := fmt.Sprintf("%s:%s@(%s:%d)/%s?parseTime=true",
 		cfg.User,
 		cfg.Password,
 		cfg.Host,
