@@ -3,6 +3,7 @@ package userservice
 import (
 	"QuestionGame/entity"
 	"QuestionGame/pkg/phonenumber"
+	"QuestionGame/pkg/richerror"
 
 	"fmt"
 
@@ -120,36 +121,42 @@ type LoginResponse struct {
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 	// TODO - it would be better to separate check existence and get user into two functions
+	const op = "userservice.Login"
 
 	// get user and check existence
 	user, exists, err := s.repo.GetUserByPhoneNumber(req.PhoneNumber)
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("unexpected error: %w", err)
+		return LoginResponse{}, richerror.New(op).SetError(err)
 	}
 	if !exists {
-		return LoginResponse{}, fmt.Errorf("username or password is incorrect")
+		return LoginResponse{},
+			richerror.New(op).SetMessage("username or password is incorrect")
 	}
 
 	// hash request password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 0)
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("there is problem in hashing password: %v\n", err)
+		return LoginResponse{},
+			richerror.New(op).SetError(err).SetKind(richerror.KindUnexpected).SetMessage("there is problem in hashing password")
 	}
 
 	// compare password and user's password
 	if string(hashedPassword) != user.Password {
-		return LoginResponse{}, fmt.Errorf("username or password is incorrect")
+		return LoginResponse{},
+			richerror.New(op).SetMessage("username or password is incorrect")
 	}
 
 	// create tokens
 	accessToken, err := s.auth.CreateAccessToken(user)
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("unexpected error: %w", err)
+		return LoginResponse{},
+			richerror.New(op).SetError(err).SetMessage("unexpected error")
 	}
 
 	refreshToken, err := s.auth.CreateRefreshToken(user)
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("unexpected error: %w", err)
+		return LoginResponse{},
+			richerror.New(op).SetError(err).SetMessage("unexpected error")
 	}
 
 	// return ok
@@ -175,9 +182,12 @@ type ProfileResponse struct {
 }
 
 func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
+	const op = "userservice.Profile"
+
 	user, err := s.repo.GetUserByID(req.UserID)
 	if err != nil {
-		return ProfileResponse{}, fmt.Errorf("unexpected error: %w", err)
+		return ProfileResponse{},
+			richerror.New(op).SetError(err).SetMeta(map[string]any{"req": req})
 	}
 
 	return ProfileResponse{Name: user.Name}, nil
