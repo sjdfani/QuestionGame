@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"QuestionGame/dto"
 	"QuestionGame/pkg/httpmsg"
 	"QuestionGame/service/userservice"
 	"net/http"
@@ -9,9 +10,17 @@ import (
 )
 
 func (s Server) userRegisterHandler(c echo.Context) error {
-	var req userservice.RegisterRequest
+	var req dto.RegisterRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest)
+	}
+
+	if err, fieldErrors := s.userValidator.ValidateRegisterRequest(req); err != nil {
+		message, code := httpmsg.Error(err)
+		return c.JSON(code, echo.Map{
+			"message": message,
+			"errors":  fieldErrors,
+		})
 	}
 
 	response, err := s.userSvc.Register(req)
